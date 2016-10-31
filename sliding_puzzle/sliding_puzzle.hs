@@ -123,6 +123,7 @@ makeNode plates = Node {
 }
 
 
+-- | list all directions in a path, delimited by newlines
 showPath :: Maybe [Node] -> String
 showPath (Just nodes) = (List.intercalate "\n" $ pathDirections nodes) ++ "\n"
 showPath Nothing = "no solution\n"
@@ -139,15 +140,21 @@ instance Ord Node where
 instance Hashable Node where
     hashWithSalt salt node = hashWithSalt salt (toList $ slotsWithZero node)
 
+-- | read a node from a string, ignoring the first number and using the rest
+-- | of the numbers to form a square board. If their count is not a square
+-- | number, throws an exception
 nodeFromString :: String -> Node
 nodeFromString s = makeNode $ map read $ tail $ filter (not . null) $ splitOneOf "\n\r " s
 
+-- | represents a node as a square matrix
 matrix :: Node -> [[Int]]
 matrix node = chunksOf (size node) $ toList $ slotsWithZero node
 
+-- | returns the node's actual slots (with a real zero at the "zero position")
 slotsWithZero :: Node -> Vector Int
 slotsWithZero Node {slots=board, zero=z} = board // [(z, 0)]
 
+-- | determines the direction by which we get from one node to another
 direction :: Node -> Node -> String
 direction Node { size=s, zero=z1 } Node { zero=z2 }
     | z1 - z2 == s  = "up"
