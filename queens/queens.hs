@@ -1,30 +1,32 @@
-import Data.Vector (Vector, toList, (!), (//))
+import Data.Vector (Vector, toList, (!), (//), MVector)
+import qualified Data.Vector as Vec
+import qualified Data.Vector.Mutable as VecM
 import Data.List (intercalate, tails, sortBy, groupBy)
 import System.Random (randomRIO)
 import Control.Monad (replicateM)
+import Control.Monad.ST (ST)
 import Data.Ord (comparing)
-import Control.Arrow
-import qualified Data.Vector as Vec
-import qualified Data.Vector.Mutable as VecM
 
-data Point = Point Int Int
-
+-- | the position of each queen on her row
 data Board = Board (Vector Int)
-
 
 main :: IO()
 main = do
     n <- readLn
     putStrLn =<< (show <$> solve n)
 
+-- | solve the problem for n queens
 solve :: Int -> IO Board
 solve n = optimise =<< initialBoard n
 
+-- | shuffle a board so that no queens are in conflict
 optimise :: Board -> IO Board
 optimise board
     | conflicts board == 0  = pure board
     | otherwise             = optimise =<< optimiseRandomQueen board
 
+-- | move a random queen to a position on her row ehere she causes a minimal
+-- | number of conflicts
 optimiseRandomQueen :: Board -> IO Board
 optimiseRandomQueen board = optimiseQueen board =<< randomRIO (0, size board - 1)
 
@@ -74,12 +76,6 @@ secDiagIndices (Board board) = (indices, numDiags + 1)
 initialBoard :: Int -> IO Board
 initialBoard n = makeBoard <$> replicateM n (randomRIO (0, n - 1))
 
-instance Show Board where
-    show (Board board) = "\n" ++ intercalate "\n" (map (showQueenAt $ Vec.length board) $ toList board) ++ "\n"
-
-instance Show Point where
-    show (Point x y) = "[" ++ show x ++ ", " ++ show y ++ "]"
-
 -- | board side size
 size :: Board -> Int
 size (Board queens) = Vec.length queens
@@ -88,21 +84,12 @@ size (Board queens) = Vec.length queens
 makeBoard :: [Int] -> Board
 makeBoard queens = Board $ Vec.fromList queens
 
-showQueenAt :: Int -> Int -> String
-showQueenAt size pos = dup pos "  " ++ "<>" ++ dup (size - pos - 1) "  "
-
-dup :: Int -> String -> String
-dup times = concat . replicate times
-
-countTrues :: [Bool] -> Int
-countTrues = length . filter (== True)
-
--- | Returns a random minimal element in the given foldable structure
+-- | Returns a random minimal element in the given list
 -- | (by minimal we mean with a minimum f value)
 randMinBy :: (Ord b) => (a -> b) -> [a] -> IO a
 randMinBy f = sample . allMinsBy f
 
--- | Returns a list of all minimal elements in the given foldable structure
+-- | Returns a list of all minimal elements in the given list
 -- | (by minimal we mean with a minimum f value)
 allMinsBy :: (Ord b) => (a -> b) -> [a] -> [a]
 allMinsBy f = map snd . head . groupBy (\x y -> fst x == fst y) . sortBy (comparing fst) . map (\x -> (f x, x))
@@ -114,8 +101,18 @@ sample l = (l !!) <$> randomRIO (0, length l - 1)
 -- | count the occurances of each number under n in v
 -- | ((histogram n v) !! i) == # of occurances of i in v
 histogram :: Int -> Vector Int -> Vector Int
-histogram n = foldr incrementPos (Vec.replicate n 0)
+histogram n v = Vec.modify (histogram' v) (Vec.replicate n 0)
+    where
+        histogram' :: Vector Int -> MVector s Int -> ST s ()
+        histogram' v hist = mapM_ (\i -> VecM.unsafeModify hist (+ 1) i) v
 
--- | incrementPos increases the value at position i by one
-incrementPos :: Int -> Vector Int  -> Vector Int
-incrementPos i = Vec.modify (\v -> VecM.unsafeModify v (+ 1) i)
+instance Show Board where
+    show (Board board) = intercalate "\n" (map (showQueenAt $ Vec.length board) $ toList board) ++ "\n"
+
+-- | print a single row of the board with a queen at the given position
+showQueenAt :: Int -> Int -> String
+showQueenAt size pos = dup pos "_" ++ "*" ++ dup (size - pos - 1) "_"
+
+-- | repeat a string several times
+dup :: Int -> String -> String
+dup times = concat . replicate times
