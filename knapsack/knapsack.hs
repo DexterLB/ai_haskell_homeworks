@@ -21,7 +21,7 @@ solve k mutationProbability maxWeight iterations populationSize = solution
 
 genetic :: Knapsack -> (Int, Int) -> Int -> Int -> [TrutsyFalsey] -> IO TrutsyFalsey
 genetic k mutationProbability maxWeight iterations population
-    | iterations <= 0 = head <$> clamped
+    | iterations <= 0 = (headByPrice k) <$> clamped
     | otherwise       = (genetic k mutationProbability maxWeight (iterations - 1)) =<< population'
     where
         population' :: IO [TrutsyFalsey]
@@ -96,6 +96,9 @@ randomPopulation Knapsack { size = s } m = replicateM m (randomTrutsyFalsey s)
 
 randomTrutsyFalsey :: Int -> IO TrutsyFalsey
 randomTrutsyFalsey n = replicateM n $ randomRIO ((0, 1) :: (Word8, Word8))
+
+headByPrice :: Knapsack -> [TrutsyFalsey] -> TrutsyFalsey
+headByPrice k = head . (sortOn (price k))
 
 price :: Knapsack -> TrutsyFalsey -> Int
 price Knapsack { prices = p } = dotProduct p
