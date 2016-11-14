@@ -1,4 +1,5 @@
 import Data.List (sortOn)
+import Data.List.Split (splitOneOf)
 import Data.Word8 (Word8)
 import Control.Monad (replicateM)
 import System.Random (randomRIO, randomIO)
@@ -13,13 +14,34 @@ data Knapsack = Knapsack {
   , size        :: Int
 }
 
-solve :: Knapsack -> (Int, Int) -> Int -> Int -> Int -> IO TrutsyFalsey
+main = do
+    input <- getContents
+    result <- io input
+    putStrLn result
+
+io :: String -> IO String
+io input = (showSolution knapsack) <$> (solve knapsack (2, 100) maxWeight 10000 2000)
+    where
+        (knapsack, maxWeight) = readKnapsack input
+
+
+solve :: Knapsack           -- ^ knapsack description
+      -> (Int, Int)         -- ^ mutation probablity
+      -> Int                -- ^ maximum weight
+      -> Int                -- ^ iterations
+      -> Int                -- ^ population size
+      -> IO TrutsyFalsey
 solve k mutationProbability maxWeight iterations populationSize = solution
     where
         solution = (genetic k mutationProbability maxWeight iterations) =<< population
         population = randomPopulation k populationSize
 
-genetic :: Knapsack -> (Int, Int) -> Int -> Int -> [TrutsyFalsey] -> IO TrutsyFalsey
+genetic :: Knapsack         -- ^ knapsack description
+        -> (Int, Int)       -- ^ mutation probability
+        -> Int              -- ^ maximum weight
+        -> Int              -- ^ iterations
+        -> [TrutsyFalsey]   -- ^ starting population
+        -> IO TrutsyFalsey
 genetic k mutationProbability maxWeight iterations population
     | iterations <= 0 = (headByPrice k) <$> clamped
     | otherwise       = (genetic k mutationProbability maxWeight (iterations - 1)) =<< population'
@@ -40,7 +62,7 @@ selectPairs k population = indexPairs population <$> selectedIndices
         numPairs = (size k) `div` 2
 
         populationPrices :: [Int]
-        populationPrices = map (price k) population
+        populationPrices = map (priceValue . (price k)) population
 
 indexPairs :: [a] -> [(Int, Int)] -> [(a, a)]
 indexPairs source = map (\(i, j) -> (source !! i, source !! j))
@@ -86,7 +108,7 @@ randomOne tf = (\i -> ones !! i) <$> (randomRIO (0, length ones - 1))
         ones = onePositions tf
 
 onePositions :: (Num a, Eq a) => [a] -> [Int]
-onePositions l = filter (\i -> l !! i == 1) [0..length l - 1] 
+onePositions l = filter (\i -> l !! i == 1) [0..length l - 1]
 
 newKnapsack :: [Int] -> [Int] -> Knapsack
 newKnapsack p w = Knapsack { prices = p, weights = w, size = length p }
@@ -156,3 +178,22 @@ accumulate = scanl1 add
 
 update :: Int -> a -> [a] -> [a]
 update i x l = (take i l) ++ [x] ++ (drop (i + 1) l)
+
+showSolution :: Knapsack -> TrutsyFalsey -> String
+showSolution k tf = (show $ price k tf) ++ "\n" ++ (show tf)
+
+readKnapsack :: String -> (Knapsack, Int)
+readKnapsack s = (newKnapsack prices weights, maxWeight)
+    where
+        (prices, weights) = unzip $ pairList $ tail ints
+        maxWeight = head ints
+
+        ints :: [Int]
+        ints = map read $ filter (not . null) $ splitOneOf "\n\r " s
+
+pairList :: [a] -> [(a, a)]
+pairList [] = []
+pairList (k:v:t) = (k, v) : pairList t
+
+priceValue :: Int -> Int
+priceValue i = i * i
