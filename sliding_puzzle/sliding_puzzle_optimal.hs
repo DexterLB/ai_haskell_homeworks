@@ -29,39 +29,35 @@ solve s = showPath $ search start (goalFor start)
 search :: Node                  -- ^ start
        -> Node                  -- ^ goal
        -> Maybe [Node]          -- ^ shortest path
-search start goal = fmap (reverse . (goal :) . trackPath goal) $ astar openHeap openSet closedSet parents startScores goal
+search start goal = fmap (reverse . (goal :) . trackPath goal) $ astar open seen parents startScores goal
     where
-        openHeap = Heap.singleton $ Heap.Entry (heuristic start goal) start
-        openSet = Set.insert start Set.empty
-        closedSet = Set.empty
+        open = Heap.singleton $ Heap.Entry (heuristic start goal) start
+        seen = Set.insert start Set.empty
         parents = HashMap.empty
         startScores = HashMap.insert start 0 HashMap.empty
 
 
 astar :: Heap (Entry Int Node)      -- ^ open set as heap
-      -> Set Node                   -- ^ open set
-      -> Set Node                   -- ^ closed set
+      -> Set Node                   -- ^ seen nodes
       -> HashMap Node Node          -- ^ parents
       -> HashMap Node Int           -- ^ startScores (cost of path from start to each node)
       -> Node                       -- ^ goal
 
       -> Maybe (HashMap Node Node)  -- ^ final parents
 
-astar openHeap openSet closedSet parents startScores goal
-    | (Heap.size openHeap) == 0  = Nothing
+astar open seen parents startScores goal
+    | (Heap.size open) == 0  = Nothing
     | current == goal            = Just parents
-    | otherwise                  = astar openHeap' openSet' closedSet' parents' startScores' goal
+    | otherwise                  = astar open' seen' parents' startScores' goal
     where
-        parents' = foldr (\x -> HashMap.insert x current) parents newNeighbours
-        startScores' = foldr (\x -> HashMap.insert x tScore) startScores newNeighbours
-        openHeap' = foldr Heap.insert (Heap.deleteMin openHeap) newEntries
-        openSet' = Set.delete current (Set.union openSet (Set.fromList newNeighbours))
-        closedSet' = Set.insert current closedSet
+        parents' = foldr (\x -> HashMap.insert x current) parents neighbours
+        startScores' = foldr (\x -> HashMap.insert x tScore) startScores neighbours
+        open' = foldr Heap.insert (Heap.deleteMin open) newEntries
+        seen' = Set.union seen (Set.fromList neighbours)
         tScore = (HashMap.lookupDefault inf current startScores) + 1
-        newEntries = map (\x -> Heap.Entry (tScore + heuristic x goal) x) newNeighbours
-        newNeighbours = filter (\x -> Set.notMember x openSet) neighbours
-        neighbours = filter (\x -> Set.notMember x closedSet) (children current)
-        current = payload $ Heap.minimum openHeap
+        newEntries = map (\x -> Heap.Entry (tScore + heuristic x goal) x) neighbours
+        neighbours = filter (\x -> Set.notMember x seen) (children current)
+        current = payload $ Heap.minimum open
 
 
 trackPath :: Node -> HashMap Node Node -> [Node]
