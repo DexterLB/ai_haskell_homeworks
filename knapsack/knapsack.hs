@@ -185,7 +185,7 @@ showSolution k tf = (show $ price k tf) ++ "\n" ++ (show tf)
 readKnapsack :: String -> (Knapsack, Int)
 readKnapsack s = (newKnapsack prices weights, maxWeight)
     where
-        (prices, weights) = unzip $ pairList $ tail ints
+        (prices, weights) = unzip $ pairList $ tail $ tail ints
         maxWeight = head ints
 
         ints :: [Int]
