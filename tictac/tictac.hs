@@ -3,11 +3,32 @@ import qualified Data.Matrix as Matrix
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import Data.Monoid ((<>))
-import Debug.Trace (trace)
+import Data.Text (Text)
+import qualified Data.Text as Text
+import Graphics.QML (defaultEngineConfig, runEngineLoop, initialDocument, contextObject)
+import Graphics.QML (fileDocument, anyObjRef, newClass, defMethod', newObject)
 
 data Board = Board Int (Matrix Player)
 
 data Player = O | X | None deriving (Eq)
+
+main :: IO ()
+main = do
+    clazz <- newClass [
+        defMethod' "solve" (\_ player board -> 
+            return (textSolve player board) :: IO Text)]
+
+    ctx <- newObject clazz ()
+
+    runEngineLoop defaultEngineConfig {
+        initialDocument = fileDocument "tictac_gui.qml",
+        contextObject = Just $ anyObjRef ctx}
+
+textSolve :: Text -> Text -> Text
+textSolve playerT boardT = Text.pack $ stringSolve playerS boardS
+    where
+        playerS = Text.unpack playerT
+        boardS = Text.unpack boardT
 
 stringSolve :: String -> String -> String
 stringSolve playerS boardS = stringifyBoard result
