@@ -18,7 +18,7 @@ executable tictac
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.9 && <4.10
-                     , hsqml, text, vector, matrix
+                     , scotty, text, vector, matrix, wai-middleware-static
   -- hs-source-dirs:      
   default-language:    Haskell2010
 

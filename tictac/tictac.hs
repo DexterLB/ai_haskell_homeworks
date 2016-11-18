@@ -1,12 +1,15 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 import Data.Matrix (Matrix, prettyMatrix, (!))
 import qualified Data.Matrix as Matrix
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import Data.Monoid ((<>))
-import Data.Text (Text)
-import qualified Data.Text as Text
-import Graphics.QML (defaultEngineConfig, runEngineLoop, initialDocument, contextObject)
-import Graphics.QML (fileDocument, anyObjRef, newClass, defMethod', newObject)
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as Text
+import qualified Web.Scotty as W
+import qualified Network.Wai.Middleware.Static as WS
+import Debug.Trace (trace)
 
 data Board = Board Int (Matrix Player)
 
@@ -14,15 +17,17 @@ data Player = O | X | None deriving (Eq)
 
 main :: IO ()
 main = do
-    clazz <- newClass [
-        defMethod' "solve" (\_ player board -> 
-            return (textSolve player board) :: IO Text)]
+    W.scotty 8080 $ do
+        W.middleware $ WS.staticPolicy (WS.noDots WS.>-> WS.addBase "web")
 
-    ctx <- newObject clazz ()
+        W.get "/solve/:player/:board" $ do
+            player  <- W.param "player"
+            board   <- W.param "board"
+            W.text $ textSolve player board
 
-    runEngineLoop defaultEngineConfig {
-        initialDocument = fileDocument "tictac_gui.qml",
-        contextObject = Just $ anyObjRef ctx}
+        W.get "/" $ do
+            W.setHeader "Content-Type" "text/html"
+            W.file "web/index.html"
 
 textSolve :: Text -> Text -> Text
 textSolve playerT boardT = Text.pack $ stringSolve playerS boardS
@@ -31,8 +36,11 @@ textSolve playerT boardT = Text.pack $ stringSolve playerS boardS
         boardS = Text.unpack boardT
 
 stringSolve :: String -> String -> String
-stringSolve playerS boardS = stringifyBoard result
+stringSolve playerS boardS = (stringifyBoard result) ++ extraText
     where
+        extraText
+            | isTerminal result = ":" ++ (show (winner result))
+            | otherwise         = ""
         result = solve player board
         player = readPlayer (head playerS)
         board  = readBoard boardS
@@ -46,8 +54,8 @@ solve player board = board'
 
 αβ :: Player -> (Int, Int) -> Board -> (Int, Board)
 αβ player (α, β) board
-    | null children = (leafValue $ winner board, board)
-    | otherwise     = best
+    | isTerminal board  = (leafValue $ winner board, board)
+    | otherwise         = best
     where
         (_, _, best) = foldr (iterateαβ player) bottom children
         bottom = (α, β, (bottomFor player, board))
@@ -55,7 +63,7 @@ solve player board = board'
 
 iterateαβ :: Player -> Board -> (Int, Int, (Int, Board)) -> (Int, Int, (Int, Board))
 iterateαβ player child (α,  β,  best)
-    | β <= α        =  (α,  β,  best)
+    | β < α         =  (α,  β,  best)
     | player == X   =  (α', β,  best')
     | player == O   =  (α,  β', best')
     where
@@ -69,6 +77,9 @@ iterateαβ player child (α,  β,  best)
 
 winner :: Board -> Player
 winner = foldr1 (<>) . map rowWinner . possibleWins
+
+isTerminal :: Board -> Bool
+isTerminal board = (winner board /= None) || (null (emptySpaces board))
 
 childrenFor :: Player -> Board -> [Board]
 childrenFor player (Board size m) = map setAt $ emptySpaces (Board size m)
@@ -113,7 +124,12 @@ readBoard s = Board size $ Matrix.fromList size size $ map readPlayer s
         size = truncate $ sqrt $ fromIntegral $ length s
 
 stringifyBoard :: Board -> String
-stringifyBoard (Board _ m) = foldr1 (++) $ map show $ Matrix.toList m
+stringifyBoard (Board _ m) = foldr1 (++) $ map stringifyPlayer $ Matrix.toList m
+
+stringifyPlayer :: Player -> String
+stringifyPlayer X       = "X"
+stringifyPlayer O       = "O"
+stringifyPlayer None    = "_"
 
 readPlayer :: Char -> Player
 readPlayer 'X' = X
