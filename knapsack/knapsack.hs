@@ -20,7 +20,7 @@ main = do
     putStrLn result
 
 io :: String -> IO String
-io input = (showSolution knapsack) <$> (solve knapsack (2, 100) maxWeight 10000 2000)
+io input = (showSolution knapsack) <$> (solve knapsack (2, 100) maxWeight 200 200)
     where
         (knapsack, maxWeight) = readKnapsack input
 
