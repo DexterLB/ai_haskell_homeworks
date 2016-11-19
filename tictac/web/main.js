@@ -72,7 +72,18 @@ var setWinner = function(player) {
 var updateBoard = function(board) {
     $('.cell').each(function() {
         var cell = $(this);
-        cell.text(board[cell.attr('index')]);
+        var player = board[cell.attr('index')];
+        var extraClass = '';
+        
+        if (player == 'X') {
+            extraClass = 'player_x';
+        } else if (player == 'O') {
+            extraClass = 'player_o';
+        } else {
+            extraClass = 'empty';
+        }
+
+        cell.attr('class', 'cell ' + extraClass);
     });
     var extra = board.split(':');
     if (extra.length > 1) {

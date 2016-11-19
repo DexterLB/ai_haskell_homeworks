@@ -7,3 +7,15 @@
     width: 2em;
     height: 2em;
 }
+
+.player_x {
+    background-color: red;
+}
+
+.player_o {
+    background-color: green;
+}
+
+.empty {
+    background-color: yellow;
+}
