@@ -26,14 +26,14 @@ var clicked = function(index) {
 }
 
 var buildBoard = function() {
-    var tt = $('#tt');
+    var board = $('#board');
 
     for (var i = 0; i < size; i++) {
         var row = $('<tr>')
         for (var j = 0; j < size; j++) {
             var cell = $('<td>');
 
-            cell.html("foo");
+            cell.html("");
             cell.attr('index', i * size + j);
             cell.attr('class', 'cell');
 
@@ -43,7 +43,7 @@ var buildBoard = function() {
 
             cell.appendTo(row);
         }
-        row.appendTo(tt);
+        row.appendTo(board);
     }
 }
 
@@ -59,6 +59,7 @@ var setPlaying = function(playing) {
 
 var setWinner = function(player) {
     info = $('#info');
+    board = $('#board');
     humanPlaying = false;
     if (player == 'O') {
         info.text('robot wins');
@@ -67,6 +68,7 @@ var setWinner = function(player) {
     } else {
         info.text('draw');
     }
+    board.attr('class', 'board over');
 }
 
 var updateBoard = function(board) {

@@ -1,21 +1,47 @@
-.tt, .tt, td {
-    border: 1px solid #ccc;
+body {
+    background-image: url(notebook.png);
+    background-repeat: repeat;
+}
+
+.board {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.board, .board td {
+    border: 1px solid #222;
     border-collapse: collapse;
 }
 
+.play_area {
+    width: 45%;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.info {
+    margin-top: 2em;
+}
+
+.over {
+    opacity: 0.3;
+}
+
 .cell {
-    width: 2em;
-    height: 2em;
+    width: 33%;
+    height: 0;
+    padding-bottom: 33%;
+    background-size: cover;
 }
 
 .player_x {
-    background-color: red;
+    background-image: url(x.svg);
 }
 
 .player_o {
-    background-color: green;
+    background-image: url(o.svg);
 }
 
 .empty {
-    background-color: yellow;
 }
