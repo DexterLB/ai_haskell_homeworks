@@ -55,9 +55,9 @@ mostCommon = snd . maximum . map mark . group . sort
 
 -- | splits a list into two bins, one with n elements and the other with the rest
 randomSplit :: Int -> [a] -> IO ([a], [a])
-randomSplit n flowers = (take n &&& drop n) <$> perm'
+randomSplit n items = (take n &&& drop n) <$> perm
     where
-        perm' = shuffle flowers
+        perm = shuffle items
 
 -- | reads data from CSV
 readData :: String -> IO [[String]]
